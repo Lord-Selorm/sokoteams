@@ -1,0 +1,11 @@
+{
+  "name": "SokoTeams",
+  "short_name": "SokoTeams",
+  "description": "Enterprise project management dashboard for teams",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#2563eb",
+  "orientation": "any",
+  "icons": []
+}

@@ -1,0 +1,579 @@
+================================================================================
+  TEAMFLOW 
+  Project & Task Management Dashboard Assessment
+================================================================================
+
+HOW TO USE THIS FILE
+--------------------
+Work through this guide section by section. Copy each prompt block into your
+AI assistant. Complete and review the output before moving to the next section.
+The order matters — later sections depend on earlier ones being in place.
+
+================================================================================
+SECTION 0 — PROJECT SETUP
+================================================================================
+
+PROMPT:
+"""
+I'm building a React + TypeScript project management dashboard called TeamFlow
+for a frontend assessment. Help me scaffold the project using Vite.
+
+Set up the following:
+1. Vite + React + TypeScript project
+2. Install and configure Tailwind CSS v3
+3. Install these dependencies:
+   - react-router-dom
+   - axios
+   - zustand
+   - @tanstack/react-query
+   - react-hook-form
+   - zod
+   - @hookform/resolvers
+   - lucide-react
+   - recharts
+   - @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
+   - framer-motion
+   - json-server (devDependency)
+
+4. Create this folder structure inside src/:
+   api/, assets/, components/common/, components/dashboard/,
+   components/forms/, components/tasks/, hooks/, layouts/,
+   pages/, routes/, services/, store/, types/, utils/
+
+5. Set up a db.json file at the project root for json-server with sample data:
+   - 3 projects
+   - 8 tasks spread across those projects
+   - 3 users
+
+6. Add a "server" script to package.json:
+   "server": "json-server --watch db.json --port 3001"
+
+Show me every config file and the db.json content.
+"""
+
+================================================================================
+SECTION 1 — TYPESCRIPT TYPES
+================================================================================
+
+PROMPT:
+"""
+Create the full TypeScript type definitions for the TeamFlow app in
+src/types/index.ts. Include:
+
+- User { id, name, email, avatar, role }
+- Project { id, title, description, members (User[]), status,
+             completionPercentage, dueDate, createdAt, updatedAt }
+- Task { id, projectId, title, description, priority (Low|Medium|High),
+         status (Todo|InProgress|Done), dueDate, assignedUser (User),
+         createdAt, updatedAt }
+- AuthState { user, token, isAuthenticated }
+- FilterState { search, status, priority, dateRange }
+- Notification { id, message, type (info|success|warning|error), read, createdAt }
+- ApiResponse<T> generic wrapper
+
+Use TypeScript enums or const objects for Priority and TaskStatus.
+Export everything.
+"""
+
+================================================================================
+SECTION 2 — API LAYER & REACT QUERY SETUP
+================================================================================
+
+PROMPT:
+"""
+Set up the API layer for TeamFlow using Axios and TanStack React Query.
+
+1. Create src/api/axiosInstance.ts
+   - Base URL: http://localhost:3001
+   - Request interceptor to attach auth token from localStorage
+   - Response interceptor for error handling
+
+2. Create these API service files:
+   - src/api/projects.ts — CRUD for /projects
+   - src/api/tasks.ts — CRUD for /tasks
+   - src/api/users.ts — GET /users
+
+3. Create src/hooks/useProjects.ts with TanStack Query hooks:
+   useProjects(), useProject(id), useCreateProject(), useUpdateProject(),
+   useDeleteProject()
+
+4. Create src/hooks/useTasks.ts with:
+   useTasks(filters?), useTask(id), useCreateTask(), useUpdateTask(),
+   useDeleteTask()
+
+5. In src/main.tsx, wrap the app with QueryClientProvider
+
+Use proper TypeScript generics throughout. Show full file contents.
+"""
+
+================================================================================
+SECTION 3 — ZUSTAND STORE (STATE MANAGEMENT)
+================================================================================
+
+PROMPT:
+"""
+Create Zustand stores for TeamFlow in src/store/:
+
+1. authStore.ts
+   - State: user, token, isAuthenticated
+   - Actions: login(user, token), logout(), updateUser(user)
+   - Persist to localStorage using zustand/middleware persist
+
+2. uiStore.ts
+   - State: sidebarOpen, darkMode, activeModal (null | 'createProject' |
+     'createTask' | 'editProject' | 'editTask' | 'deleteConfirm')
+   - Actions: toggleSidebar, setDarkMode(bool), openModal(name), closeModal()
+   - Persist darkMode to localStorage
+
+3. filterStore.ts
+   - State: search, statusFilter, priorityFilter, dateRange, sortBy, sortOrder
+   - Actions: setSearch, setStatusFilter, setPriorityFilter, setDateRange,
+     setSortBy, resetFilters
+
+Use TypeScript types from src/types/index.ts. Show full file contents.
+"""
+
+================================================================================
+SECTION 4 — ROUTING
+================================================================================
+
+PROMPT:
+"""
+Set up React Router v6 routing for TeamFlow in src/routes/.
+
+1. Create src/routes/AppRouter.tsx with these routes:
+   / → redirect to /dashboard
+   /login
+   /register
+   /dashboard
+   /projects
+   /projects/:id
+   /tasks
+   /analytics
+   /settings
+
+2. Create src/routes/ProtectedRoute.tsx
+   - Reads auth state from Zustand authStore
+   - Redirects unauthenticated users to /login
+   - Wraps routes that need the DashboardLayout
+
+3. Create src/routes/PublicRoute.tsx
+   - Redirects already-authenticated users away from /login and /register
+
+Show full file contents with TypeScript.
+"""
+
+================================================================================
+SECTION 5 — LAYOUTS
+================================================================================
+
+PROMPT:
+"""
+Create the main layout components for TeamFlow.
+
+1. src/layouts/DashboardLayout.tsx
+   - Sticky topbar + sidebar + main content area
+   - Sidebar collapses on mobile (controlled by uiStore)
+   - Outlet from react-router-dom for page content
+
+2. src/layouts/Sidebar.tsx
+   - Links: Dashboard, Projects, Tasks, Analytics, Settings
+   - Use lucide-react icons for each
+   - Active link highlighting using NavLink
+   - Collapsible on mobile with smooth animation (framer-motion)
+   - Show user avatar + name at the bottom
+
+3. src/layouts/Topbar.tsx
+   - Global search input (debounced, updates filterStore)
+   - Dark mode toggle button (syncs with uiStore)
+   - Notification bell icon with unread badge
+   - User avatar dropdown (profile, logout)
+
+Apply Tailwind CSS. Support dark mode using the 'dark:' prefix classes.
+Use the types from src/types/index.ts. Show full file contents.
+"""
+
+================================================================================
+SECTION 6 — AUTH PAGES
+================================================================================
+
+PROMPT:
+"""
+Build the authentication pages for TeamFlow using React Hook Form + Zod.
+
+1. src/pages/LoginPage.tsx
+   - Email + password fields
+   - Password visibility toggle
+   - Form validation with Zod schema (email format, password min 8 chars)
+   - Loading state on submit button
+   - Error message display
+   - Link to /register
+   - On success: store fake token + user in authStore, redirect to /dashboard
+   - Simulate API call with a 1-second delay and a hardcoded valid user
+
+2. src/pages/RegisterPage.tsx
+   - Name, email, password, confirm password fields
+   - Zod schema with password match validation
+   - Same UX patterns as login
+   - Link to /login
+
+3. src/components/forms/FormInput.tsx
+   - Reusable input component
+   - Props: label, error, type, register (RHF), placeholder
+   - Supports password toggle when type='password'
+
+Use Tailwind CSS with dark mode support. Show full file contents.
+"""
+
+================================================================================
+SECTION 7 — PROJECTS MODULE
+================================================================================
+
+PROMPT:
+"""
+Build the full Projects module for TeamFlow.
+
+1. src/pages/ProjectsPage.tsx
+   - Displays grid of ProjectCard components
+   - 'New Project' button opens create modal
+   - Loading skeleton state (3 placeholder cards)
+   - Empty state illustration + message when no projects
+
+2. src/components/dashboard/ProjectCard.tsx
+   - Shows: title, description, status badge, completion % progress bar,
+     due date, member avatars (stacked, max 3 + overflow count)
+   - Edit and Delete icon buttons
+   - Clicking card navigates to /projects/:id
+
+3. src/pages/ProjectDetailPage.tsx
+   - Shows project header info
+   - Lists tasks belonging to that project
+   - Add task button scoped to this project
+
+4. src/components/forms/ProjectFormModal.tsx
+   - Modal for create + edit (receives optional project prop)
+   - Fields: title, description, status, due date, assign members
+   - React Hook Form + Zod validation
+   - Calls useCreateProject or useUpdateProject on submit
+
+5. src/components/common/ConfirmDialog.tsx
+   - Reusable confirmation modal
+   - Props: isOpen, title, message, onConfirm, onCancel, isLoading
+
+Use TanStack Query hooks from src/hooks/useProjects.ts.
+Use TypeScript types. Full file contents please.
+"""
+
+================================================================================
+SECTION 8 — TASKS MODULE
+================================================================================
+
+PROMPT:
+"""
+Build the full Tasks module for TeamFlow. This is the most complex section.
+
+1. src/pages/TasksPage.tsx
+   - Toggle between Kanban view and Table view (save preference in localStorage)
+   - Filter bar: search input, status select, priority select, date picker
+   - Sort controls: sort by date or priority, asc/desc
+
+2. src/components/tasks/KanbanBoard.tsx
+   - Three columns: Todo | In Progress | Done
+   - Uses @dnd-kit/core and @dnd-kit/sortable
+   - Dragging a task between columns updates its status via useUpdateTask
+   - Each column shows task count badge
+
+3. src/components/tasks/KanbanCard.tsx
+   - Shows: title, priority badge (color-coded), due date, assigned user avatar
+   - Edit and delete icon buttons on hover
+   - Visual drag handle
+
+4. src/components/tasks/TaskTable.tsx
+   - Table with columns: title, project, priority, status, due date, assigned to, actions
+   - Sortable column headers
+   - Row actions: edit, delete, mark complete checkbox
+
+5. src/components/forms/TaskFormModal.tsx
+   - Modal for create + edit
+   - Fields: title, description, priority, status, due date, assign user, project
+   - React Hook Form + Zod validation
+
+Use TanStack Query hooks from src/hooks/useTasks.ts. Full TypeScript.
+Full file contents please.
+"""
+
+================================================================================
+SECTION 9 — ANALYTICS PAGE
+================================================================================
+
+PROMPT:
+"""
+Build the Analytics page for TeamFlow using Recharts.
+
+src/pages/AnalyticsPage.tsx
+
+Include:
+1. Summary stat cards (4 cards in a row, responsive):
+   - Total Projects
+   - Completed Tasks
+   - Pending Tasks
+   - Overdue Tasks
+   Each with an icon, number, and subtle trend indicator.
+
+2. Task Status Distribution — PieChart or DonutChart
+   - Slices: Todo, In Progress, Done
+   - Custom legend
+
+3. Weekly Activity — BarChart
+   - X-axis: last 7 days
+   - Y-axis: tasks completed per day
+   - Tooltip showing count
+
+4. Project Completion — horizontal BarChart
+   - One bar per project showing completion %
+   - Color gradient fill
+
+5. Priority Breakdown — BarChart or AreaChart
+   - Low / Medium / High task counts
+
+All data should be derived from the tasks and projects fetched via
+TanStack Query (no hardcoded chart data).
+
+Use Recharts ResponsiveContainer for all charts.
+Dark mode compatible. Full TypeScript. Show full file contents.
+"""
+
+================================================================================
+SECTION 10 — COMMON REUSABLE COMPONENTS
+================================================================================
+
+PROMPT:
+"""
+Create these reusable common components for TeamFlow in src/components/common/:
+
+1. Button.tsx
+   - Props: variant (primary|secondary|danger|ghost), size (sm|md|lg),
+     isLoading, disabled, leftIcon, rightIcon, onClick, type
+   - Loading spinner replaces content when isLoading=true
+
+2. Badge.tsx
+   - Props: label, variant (maps to color: priority + status values)
+   - Color map: Low=blue, Medium=yellow, High=red,
+     Todo=gray, InProgress=purple, Done=green
+
+3. Avatar.tsx
+   - Props: user (User type), size (sm|md|lg)
+   - Shows image if avatar URL exists, else initials fallback with bg color
+
+4. AvatarGroup.tsx
+   - Props: users (User[]), max (default 3)
+   - Shows stacked avatars with +N overflow badge
+
+5. Skeleton.tsx
+   - Props: width, height, className, variant (rect|circle|text)
+   - Animated pulse shimmer effect
+
+6. Modal.tsx
+   - Props: isOpen, onClose, title, children, size (sm|md|lg|xl)
+   - Backdrop blur, close on backdrop click, close on Escape key
+   - Framer Motion fade + scale animation
+
+7. EmptyState.tsx
+   - Props: title, description, icon, actionLabel, onAction
+   - Centered layout with icon, text, and optional CTA button
+
+8. SearchInput.tsx
+   - Debounced input (300ms) using a custom useDebounce hook
+   - Clears on X button
+   - Updates filterStore.search on change
+
+Show full file contents with TypeScript props.
+"""
+
+================================================================================
+SECTION 11 — SETTINGS PAGE
+================================================================================
+
+PROMPT:
+"""
+Build the Settings page for TeamFlow.
+
+src/pages/SettingsPage.tsx
+
+Sections:
+1. Profile Settings
+   - Edit name, email, avatar URL
+   - React Hook Form + Zod, updates authStore on save
+
+2. Appearance
+   - Dark / Light mode toggle (syncs with uiStore.darkMode)
+   - A visual preview of the current theme
+
+3. Notifications
+   - Toggle switches for: email notifications, task reminders, project updates
+   - Store preferences in localStorage
+
+4. Account
+   - 'Log out' button (calls authStore.logout, redirects to /login)
+   - 'Delete account' button (shows ConfirmDialog, then clears data)
+
+Use reusable components (Button, FormInput, Modal, ConfirmDialog).
+Full TypeScript. Show full file contents.
+"""
+
+================================================================================
+SECTION 12 — DARK MODE CONFIGURATION
+================================================================================
+
+PROMPT:
+"""
+Configure dark mode properly across the TeamFlow app.
+
+1. In tailwind.config.js, set darkMode: 'class'
+
+2. In src/main.tsx or App.tsx, read uiStore.darkMode on mount and:
+   - Add/remove the 'dark' class on document.documentElement
+   - Use a useEffect that subscribes to uiStore changes
+
+3. Audit these components and ensure they have proper dark: variants:
+   - Sidebar, Topbar, DashboardLayout
+   - ProjectCard, KanbanCard, TaskTable
+   - All modals and form inputs
+   - All stat cards on AnalyticsPage
+   - Button, Badge, Modal, EmptyState
+
+4. Create src/utils/cn.ts — a utility that merges Tailwind class names
+   using clsx + tailwind-merge (install both).
+
+Show all changes and the full updated files.
+"""
+
+================================================================================
+SECTION 13 — DASHBOARD HOME PAGE
+================================================================================
+
+PROMPT:
+"""
+Build the main Dashboard home page for TeamFlow.
+
+src/pages/DashboardPage.tsx
+
+Include:
+1. Welcome header — "Good morning, [User Name]" with today's date
+
+2. Quick stats row (4 cards):
+   - Active Projects count
+   - Tasks Due Today count
+   - Completed This Week count
+   - Overdue Tasks count
+
+3. Recent Projects — last 3 updated projects shown as compact cards
+   with a 'View all' link
+
+4. My Tasks — tasks assigned to the current user, filtered to Todo/InProgress,
+   sorted by due date. Show as a compact list with status badges.
+
+5. Activity Feed placeholder — show last 5 task status changes as a timeline
+
+All data fetched using TanStack Query hooks.
+Full TypeScript. Show full file contents.
+"""
+
+================================================================================
+SECTION 14 — PERFORMANCE & FINISHING TOUCHES
+================================================================================
+
+PROMPT:
+"""
+Add performance optimizations and finishing touches to the TeamFlow app.
+
+1. Lazy load all page components in AppRouter.tsx using React.lazy + Suspense
+   with a full-page loading spinner fallback
+
+2. Memoize expensive computations in AnalyticsPage.tsx using useMemo:
+   - Task counts per status
+   - Weekly activity aggregation
+   - Project completion percentages
+
+3. Wrap KanbanCard and ProjectCard with React.memo to prevent unnecessary
+   re-renders
+
+4. Create src/hooks/useDebounce.ts — generic debounce hook used in SearchInput
+
+5. Create src/hooks/useLocalStorage.ts — generic hook for persisted state
+
+6. Add a global error boundary in src/components/common/ErrorBoundary.tsx
+   with a friendly fallback UI
+
+7. Add a 404 Not Found page at src/pages/NotFoundPage.tsx and add a catch-all
+   route in AppRouter.tsx
+
+8. Add page transition animations using framer-motion AnimatePresence
+   on route changes in AppRouter.tsx
+
+Show full file contents for each.
+"""
+
+================================================================================
+SECTION 15 — README
+================================================================================
+
+PROMPT:
+"""
+Write a professional README.md for the TeamFlow project.
+
+Include these sections:
+1. Project Overview — what it is and what it demonstrates
+2. Tech Stack — table with library name, version, purpose
+3. Getting Started — prerequisites, installation steps, running dev server,
+   running json-server, running both together
+4. Features Implemented — grouped: Auth, Projects, Tasks, Analytics, UI/UX
+5. Architecture Decisions — why Zustand over Redux, why TanStack Query,
+   folder structure rationale, component composition approach
+6. Tradeoffs — what was prioritized, what was simplified (e.g. fake auth)
+7. Future Improvements — real auth, websockets, testing, PWA, role permissions
+8. Screenshots section placeholder — 5 image links with descriptive alt text
+
+Format it cleanly in Markdown.
+"""
+
+================================================================================
+TIPS FOR BEST RESULTS
+================================================================================
+
+1. WORK INCREMENTALLY
+   After each section, run the app and fix errors before moving on.
+   Don't paste all prompts at once.
+
+2. SHARE CONTEXT
+   If you already have a file written, paste its contents into the next
+   prompt so the AI can reference it properly.
+
+3. FIX TYPESCRIPT ERRORS FIRST
+   TypeScript errors cascade. Fix type errors in Section 1 & 2 before
+   building UI components.
+
+4. KEEP db.json REALISTIC
+   The quality of your analytics charts depends on having enough varied
+   data. Add at least 10–15 tasks with different statuses, priorities,
+   and dates.
+
+5. MOBILE-FIRST CSS
+   When asking for component styling, remind the AI: "mobile-first,
+   use Tailwind responsive prefixes sm:, md:, lg:"
+
+6. IF SOMETHING BREAKS
+   Paste the error message and the relevant file back into the AI and ask:
+   "Here is the error and the file causing it. Fix it."
+
+7. SUGGESTED DAILY SPLIT (10-hour build)
+   Hour 1–2   → Sections 0–3 (setup, types, API, store)
+   Hour 3–4   → Sections 4–6 (routing, layout, auth)
+   Hour 5–7   → Sections 7–8 (projects + tasks — most complex)
+   Hour 8     → Sections 9, 13 (analytics, dashboard home)
+   Hour 9     → Sections 10–12 (common components, settings, dark mode)
+   Hour 10    → Sections 14–15 (polish, performance, README)
+
+================================================================================
+END OF GUIDE
+================================================================================
