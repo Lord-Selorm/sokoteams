@@ -7,7 +7,7 @@ const nodemailer = require('nodemailer');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { getDb } = require('./db');
+const { getDb, initDb } = require('./db');
 
 const app = express();
 
@@ -32,8 +32,8 @@ app.use(express.json({ limit: '1mb' }));
 const PORT = process.env.PORT || 3005;
 const JWT_SECRET = process.env.JWT_SECRET || 'sokoteams-dev-secret-change-in-production';
 
-// Initialize database
-const db = getDb();
+// Database will be initialized asynchronously below
+let db;
 
 // ─── Helpers ──────────────────────────────────────────────
 function signToken(user) {
@@ -1480,22 +1480,33 @@ if (fs.existsSync(distPath)) {
 
 // ─── Start ────────────────────────────────────────────────
 const isProduction = process.env.NODE_ENV === 'production';
-app.listen(PORT, () => {
-  console.log(`\n  SokoTeams API Server${isProduction ? ' (production)' : ''}`);
-  console.log(`  ─────────────────`);
-  console.log(`  Database: SQLite (sokoteams.db)`);
-  console.log(`  Port:     ${PORT}`);
-  console.log(`  Auth:     /api/auth/login`);
-  console.log(`  Users:    /api/users`);
-  console.log(`  Projects: /api/projects`);
-  console.log(`  Tasks:    /api/tasks`);
-  console.log(`  Messages: /api/messages`);
-  console.log(`  Health:   /api/health`);
-  console.log(`  SMTP:     ${process.env.SMTP_USER ? 'configured' : 'NOT configured'}`);
-  console.log(`  CORS:     ${allowedOrigins.join(', ')}`);
-  if (isProduction) {
-    console.log(`  Frontend: serving from dist/\n`);
-  } else {
-    console.log(`\n`);
-  }
+
+async function start() {
+  await initDb();
+  db = getDb();
+  
+  app.listen(PORT, () => {
+    console.log(`\n  SokoTeams API Server${isProduction ? ' (production)' : ''}`);
+    console.log(`  ─────────────────`);
+    console.log(`  Database: SQLite (sokoteams.db)`);
+    console.log(`  Port:     ${PORT}`);
+    console.log(`  Auth:     /api/auth/login`);
+    console.log(`  Users:    /api/users`);
+    console.log(`  Projects: /api/projects`);
+    console.log(`  Tasks:    /api/tasks`);
+    console.log(`  Messages: /api/messages`);
+    console.log(`  Health:   /api/health`);
+    console.log(`  SMTP:     ${process.env.SMTP_USER ? 'configured' : 'NOT configured'}`);
+    console.log(`  CORS:     ${allowedOrigins.join(', ')}`);
+    if (isProduction) {
+      console.log(`  Frontend: serving from dist/\n`);
+    } else {
+      console.log(`\n`);
+    }
+  });
+}
+
+start().catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });
