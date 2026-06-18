@@ -13,9 +13,15 @@ const { getDb, initDb } = require('./db');
 const app = express();
 
 // CORS — restrict in production
-const allowedOrigins = process.env.CORS_ORIGIN
+const allowedOrigins = process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== 'value'
   ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-  : ['http://localhost:3000', 'http://localhost:5173', 'https://sokoteams.vercel.app'];
+  : [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://sokoteams.vercel.app',
+      'https://sokoteams-48vfmbrux-lord-selorm1.vercel.app',
+      'https://sokoteams-lord-selorm1.vercel.app',
+    ];
 
 app.use(cors({
   origin: (origin, callback) => {
