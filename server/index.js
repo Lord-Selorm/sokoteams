@@ -726,7 +726,7 @@ app.get('/api/channels/:id/membership', authenticate, async (req, res) => {
 // ─── Auto-delete cleanup (runs every 60s) ────────────────
 async function cleanupExpiredMessages() {
   try {
-    const expired = await db.all('SELECT id, channelId, attachments FROM messages WHERE auto_delete_at IS NOT NULL AND auto_delete_at <= NOW() AND isDeleted = 0');
+    const expired = await db.all("SELECT id, channelId, attachments FROM messages WHERE auto_delete_at IS NOT NULL AND auto_delete_at::timestamptz <= NOW() AND isDeleted = 0");
     if (expired.length === 0) return;
     for (const msg of expired) {
       try {

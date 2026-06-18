@@ -9,13 +9,8 @@ function convertPlaceholders(sql) {
   return sql.replace(/\?/g, () => `$${++idx}`);
 }
 
-const camelCols = ['passwordHash','createdAt','updatedAt','lastSeen','statusEmoji','twoFactorSecret','twoFactorEnabled','completionPercentage','dueDate','startDate','ownerId','workspaceId','isArchived','archivedAt','projectId','assignedUserId','estimatedHours','actualHours','completedAt','isRecurring','recurringInterval','timeLogged','lastMessageAt','lastMessagePreview','createdBy','parentId','replyToId','userId','userName','userAvatar','isEdited','editedAt','isDeleted','deletedAt','isPinned','pinnedAt','pinnedBy','isStarred','forwardedFrom','messageId','readAt','isClosed','expiresAt','dependsOnId','savedAt','groupId','oldContent','newContent','invitedBy','isRead','isMuted','otherUserId','blockedUserId','blockedAt','joinedAt','projectRole','isMember','membershipStatus','invitedByName','systemRole'];
-
 function quoteIdentifiers(sql) {
-  for (const col of camelCols) {
-    sql = sql.replace(new RegExp('\\b' + col + '\\b', 'g'), `"${col}"`);
-  }
-  return sql;
+  return sql.replace(/\b([a-z]+[A-Z][a-zA-Z]*)\b/g, '"$1"');
 }
 
 class DbHelper {
@@ -203,6 +198,7 @@ function createTablesSql() {
     CREATE TABLE IF NOT EXISTS "channel_members" (
       "channelId" TEXT NOT NULL,
       "userId" TEXT NOT NULL,
+      "userName" TEXT DEFAULT '',
       "role" TEXT NOT NULL DEFAULT 'member',
       "status" TEXT NOT NULL DEFAULT 'approved',
       "joinedAt" TEXT DEFAULT NOW(),
@@ -309,6 +305,12 @@ function createTablesSql() {
   `;
 }
 
+function migrateTablesSql() {
+  return `
+    ALTER TABLE "channel_members" ADD COLUMN IF NOT EXISTS "userName" TEXT DEFAULT '';
+  `;
+}
+
 function createIndexesSql() {
   return `
     CREATE INDEX IF NOT EXISTS idx_messages_channel ON "messages"("channelId");
@@ -366,16 +368,50 @@ async function seedIfEmpty() {
   console.log('  Database seeded with admin user');
 }
 
+function splitStatements(sql) {
+  return sql.split(';').map(s => s.trim()).filter(s => s.length > 0 && !s.match(/^\s*$/));
+}
+
 async function initDb() {
+  if (!process.env.DATABASE_URL) {
+    console.error('  DATABASE_URL not set — cannot start without PostgreSQL');
+    process.exit(1);
+  }
+
+  console.log('  Connecting to PostgreSQL...');
+  const needsSsl = !process.env.DATABASE_URL.includes('localhost') && !process.env.DATABASE_URL.includes('127.0.0.1');
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production'
-      ? { rejectUnauthorized: false }
-      : false,
+    ssl: needsSsl ? { rejectUnauthorized: false } : false,
+    connectionTimeoutMillis: 15000,
+    max: 5,
   });
 
-  await pool.query(createTablesSql());
-  await pool.query(createIndexesSql());
+  await pool.query('SELECT 1');
+  console.log('  Connected');
+
+  const tableStmts = splitStatements(createTablesSql());
+  for (let i = 0; i < tableStmts.length; i++) {
+    try {
+      await pool.query(tableStmts[i]);
+    } catch (e) {
+      console.error(`  Failed table ${i + 1}/${tableStmts.length}: ${e.message}`);
+      throw e;
+    }
+  }
+  console.log(`  Created ${tableStmts.length} tables`);
+
+  const migrateStmts = splitStatements(migrateTablesSql());
+  for (const stmt of migrateStmts) {
+    await pool.query(stmt);
+  }
+
+  const indexStmts = splitStatements(createIndexesSql());
+  for (let i = 0; i < indexStmts.length; i++) {
+    await pool.query(indexStmts[i]);
+  }
+  console.log(`  Created ${indexStmts.length} indexes`);
+
   await seedIfEmpty();
 
   dbInstance = new DbHelper();
