@@ -237,39 +237,9 @@ function migrateSchema() {
     }
 
     const tasksFks = dbInstance.prepare("PRAGMA table_info(tasks)").all();
-    if (!tasksFks.some(c => c.name === 'projectId' && c.dflt_value === undefined)) {
-      const fks = dbInstance.prepare("PRAGMA foreign_key_list(tasks)").all();
-      if (!fks.some(f => f.from === 'projectId')) {
-        dbInstance.exec(`
-          CREATE TABLE IF NOT EXISTS tasks_new (
-            id TEXT PRIMARY KEY,
-            projectId TEXT NOT NULL DEFAULT '',
-            title TEXT NOT NULL,
-            description TEXT DEFAULT '',
-            priority TEXT NOT NULL DEFAULT 'Medium',
-            status TEXT NOT NULL DEFAULT 'Todo',
-            dueDate TEXT DEFAULT '',
-            startDate TEXT DEFAULT '',
-            assignedUserId TEXT DEFAULT '',
-            tags TEXT DEFAULT '[]',
-            estimatedHours REAL DEFAULT 0,
-            actualHours REAL DEFAULT 0,
-            completedAt TEXT DEFAULT '',
-            createdAt TEXT DEFAULT (datetime('now')),
-            updatedAt TEXT DEFAULT (datetime('now')),
-            isArchived INTEGER DEFAULT 0,
-            archivedAt TEXT DEFAULT NULL,
-            isRecurring INTEGER DEFAULT 0,
-            recurringInterval TEXT DEFAULT NULL,
-            timeLogged REAL DEFAULT 0
-          );
-        `);
-        try {
-          dbInstance.exec("INSERT INTO tasks_new SELECT * FROM tasks");
-          dbInstance.exec("DROP TABLE tasks");
-          dbInstance.exec("ALTER TABLE tasks_new RENAME TO tasks");
-        } catch (_) {}
-      }
+    const tasksHasProjectId = tasksFks.some(c => c.name === 'projectId');
+    if (!tasksHasProjectId) {
+      try { dbInstance.exec("ALTER TABLE tasks ADD COLUMN projectId TEXT NOT NULL DEFAULT ''"); } catch (_) {}
     }
 
     const tasksArchived = dbInstance.prepare("PRAGMA table_info(tasks)").all();
