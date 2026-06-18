@@ -256,7 +256,12 @@ function migrateSchema() {
             actualHours REAL DEFAULT 0,
             completedAt TEXT DEFAULT '',
             createdAt TEXT DEFAULT (datetime('now')),
-            updatedAt TEXT DEFAULT (datetime('now'))
+            updatedAt TEXT DEFAULT (datetime('now')),
+            isArchived INTEGER DEFAULT 0,
+            archivedAt TEXT DEFAULT NULL,
+            isRecurring INTEGER DEFAULT 0,
+            recurringInterval TEXT DEFAULT NULL,
+            timeLogged REAL DEFAULT 0
           );
         `);
         try {
