@@ -2,6 +2,15 @@
 
 Enterprise project management dashboard for teams with real-time chat, task management, and analytics.
 
+## Live Demo
+
+- **Frontend**: https://sokoteams.vercel.app
+- **Backend API**: https://sokoteams.onrender.com
+
+| Username | Password | Role |
+|----------|----------|------|
+| admin    | admin123 | admin |
+
 ## Tech Stack
 
 **Frontend** (`/frontend`):
@@ -18,7 +27,7 @@ Enterprise project management dashboard for teams with real-time chat, task mana
 
 **Backend** (`/server`):
 - Express.js + Node.js
-- SQLite via sql.js (pure JavaScript, no native compilation)
+- PostgreSQL via pg (Render-managed database)
 - bcryptjs + JWT (authentication)
 - Nodemailer (email)
 - Multer (file uploads)
@@ -32,11 +41,12 @@ Enterprise project management dashboard for teams with real-time chat, task mana
 
 ```
 sokoteams/
-  frontend/           # React SPA (deploy to Vercel, Netlify, etc.)
+  frontend/           # React SPA (deployed to Vercel)
     src/
     package.json
     vite.config.ts
-  server/             # Express API (deploy to Render, Railway, etc.)
+    vercel.json
+  server/             # Express API (deployed to Render)
     index.js
     db.js
     package.json
@@ -49,6 +59,7 @@ sokoteams/
 
 ### Prerequisites
 - Node.js 18+
+- PostgreSQL (or use Render-managed database)
 
 ### Frontend
 ```bash
@@ -62,20 +73,31 @@ npm run test         # 14 unit tests
 ### Backend
 ```bash
 cd server
-cp .env.example .env   # Configure SMTP, JWT_SECRET, CORS_ORIGIN
+cp .env.example .env   # Configure DATABASE_URL, JWT_SECRET, CORS_ORIGIN
 npm install
 node index.js          # Express on port 3005
 ```
 
-### Default Account
-- `admin` / `admin123` (admin role)
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `JWT_SECRET` | Yes | Secret key for JWT tokens |
+| `PORT` | No | Server port (default: 3005) |
+| `CORS_ORIGIN` | No | Comma-separated allowed origins |
+| `NODE_ENV` | No | Set to `production` for SSL on DB |
+| `SMTP_HOST` | No | SMTP server for email |
+| `SMTP_PORT` | No | SMTP port |
+| `SMTP_USER` | No | SMTP username |
+| `SMTP_PASS` | No | SMTP password |
 
 ## Features
 
 ### Core
 - Real authentication (bcrypt + JWT)
 - Role-based permissions (admin/user system roles + project-level lead/member/guest)
-- SQLite database with 25+ tables
+- PostgreSQL database with 22+ tables
 - RESTful API with 80+ endpoints
 - First registered user auto-promoted to admin
 
@@ -156,9 +178,10 @@ node index.js          # Express on port 3005
 ### Frontend (Vercel)
 1. Connect GitHub repo to Vercel
 2. Set root directory to `frontend`
-3. Build command: `npm run build`
-4. Output directory: `dist`
-5. Environment variable: `VITE_API_URL` = your backend URL (e.g. `https://sokoteams-api.onrender.com`)
+3. Framework preset: **Vite**
+4. Build command: `npm run build`
+5. Output directory: `dist`
+6. Environment variable: `VITE_API_URL` = your backend URL
 
 ### Backend (Render)
 1. Connect GitHub repo to Render
@@ -166,18 +189,16 @@ node index.js          # Express on port 3005
 3. Build command: `npm install`
 4. Start command: `node index.js`
 5. Environment variables:
+   - `DATABASE_URL` = PostgreSQL connection string
    - `NODE_ENV` = `production`
    - `PORT` = `3005`
    - `JWT_SECRET` = random hex string
-   - `CORS_ORIGIN` = your Vercel URL
-   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (optional, for email)
-
-### Alternative: StormerHost (Shared Hosting)
-The `sql.js` backend works on shared hosting (no native compilation needed). Upload `server/` directory contents and configure Node.js.
+   - `CORS_ORIGIN` = your Vercel URL (or leave unset)
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (optional)
 
 ## Architecture Decisions
 
-**sql.js over better-sqlite3:** Pure JavaScript SQLite — no native C++ compilation required. Works on shared hosting (StormerHost, cPanel) and all cloud platforms.
+**PostgreSQL over SQLite:** Persistent data on Render's ephemeral disk. Managed PostgreSQL with automatic backups.
 
 **REST polling for chat:** 2s polling interval. Simpler than WebSocket setup, works through all proxies, sufficient for team-sized chat loads.
 
@@ -185,15 +206,9 @@ The `sql.js` backend works on shared hosting (no native compilation needed). Upl
 
 **TanStack React Query:** Automatic cache invalidation, background refetching, optimistic updates.
 
-**Single-server architecture:** Express handles all API + serves production frontend build in the same process for single-server deployments.
-
 **Frontend/backend separation:** Codebase split into `frontend/` and `server/` for independent deployment (Vercel + Render).
 
-## Default Account
-
-| Username | Password | Role |
-|----------|----------|------|
-| admin    | admin123 | admin |
+**Regex-based identifier quoting:** Auto-converts camelCase column names to PostgreSQL double-quoted identifiers, avoiding manual column lists.
 
 ## License
 
